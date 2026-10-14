@@ -20,6 +20,8 @@ export interface Sale {
   /** Tasa FX USD→NIO vigente al emitir; si el pago la usa, queda registrada en el pago. */
   fxRateUsdNio: string;
   paypalOrderId?: string;
+  /** Link de aprobación de la orden (F2): permite reusar la orden sin pedirle otra a PayPal. */
+  paypalApproveUrl?: string;
 }
 
 export type PaymentStatus = "completed" | "refunded";
@@ -81,6 +83,8 @@ export interface NortexStore {
   getSale(tenantId: string, saleId: string): Sale | undefined;
   findSaleByPaypalOrderId(orderId: string): Sale | undefined;
   saveSale(sale: Sale): void;
+  /** Ventas de UN tenant (F2: el agente nunca ve otro tenant). */
+  listSales(tenantId: string): Sale[];
   findPaymentByCaptureId(captureId: string): Payment | undefined;
   savePayment(payment: Payment): void;
   addLedgerEntry(entry: LedgerEntry): void;

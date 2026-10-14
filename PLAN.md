@@ -46,6 +46,8 @@ PayPal NO opera en Nicaragua — el caso real es la **diáspora**: nicas en EE. 
 1. **F0 — Setup (esta semana):** repo creado, Noel se registra en Devpost + crea cuenta PayPal Developer (gratis), starknortex entrega arquitectura/spec.
 2. **F1 — Núcleo PayPal:** Orders API v2 + Invoices API + webhooks en sandbox; concilia contra staging Nortex.
 3. **F2 — Agente AI:** checkout conversacional + cobranza por WhatsApp (voseo), usando catálogo/pedidos de Nortex.
+   - **F2 núcleo local: HECHO (sandbox).** `src/agent/` — parser determinista (sin LLM), `CobroAgent` acotado a un tenant, mensajes en voseo (texto listo para enviar), escena F2 en `npm run demo`.
+   - **Bloqueo restante (F2-integración/F3):** WhatsApp Business API (envío/recepción real) + cuentas de Noel (Devpost, PayPal Developer sandbox con credenciales). Sin eso el agente no recibe ni envía mensajes reales.
 4. **F3 — Demo y video:** demo hosteada estable, video <3 min, submission en Devpost.
 
 ## Roles

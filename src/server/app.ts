@@ -74,7 +74,12 @@ export function createApp(deps: AppDeps): Server {
           amountUsd: sale.amountUsd,
           description: `Factura ${sale.dgiNumber} — ${sale.description}`,
         });
-        store.saveSale({ ...sale, paypalOrderId: order.orderId, status: "pending" });
+        store.saveSale({
+          ...sale,
+          paypalOrderId: order.orderId,
+          paypalApproveUrl: order.approveUrl,
+          status: "pending",
+        });
         // La venta sigue PENDIENTE: pagada recién al capturar (skill §3).
         return sendJson(res, 201, {
           orderId: order.orderId,

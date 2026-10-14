@@ -11,7 +11,8 @@ import type { AddressInfo } from "node:net";
 import { FakePaypalGateway } from "../paypal/fake.js";
 import { ReconciliationService } from "../nortex/reconciliation.js";
 import { createApp } from "../server/app.js";
-import { createDemoStore, DEMO_SALE_ID, DEMO_TENANT } from "./seed.js";
+import { CobroAgent } from "../agent/agent.js";
+import { createAgentDemoStore, createDemoStore, DEMO_SALE_ID, DEMO_TENANT } from "./seed.js";
 
 const log = (s: string) => console.log(s);
 let failures = 0;
@@ -100,11 +101,42 @@ async function main(): Promise<void> {
     const bad = await call("POST", "/api/integrations/paypal/webhook", event);
     check(bad.status === 401, "rechazado con 401 y registrado en auditoría");
 
+    await agentScene();
+
     log(failures === 0 ? "\n═══ DEMO OK: flujo completo conciliado ═══\n" : "\n═══ DEMO CON FALLOS ═══\n");
   } finally {
     server.close();
   }
   if (failures > 0) process.exit(1);
+}
+
+/** Escena F2: el agente conversacional (voseo) cobra y hace cobranza. */
+async function agentScene(): Promise<void> {
+  const store = createAgentDemoStore();
+  const gateway = new FakePaypalGateway();
+  const agent = new CobroAgent({ store, gateway, tenantId: DEMO_TENANT });
+  const say = async (cmd: string) => {
+    log(`\n  🧑 Doña Carmen: ${cmd}`);
+    const reply = await agent.handle(cmd);
+    log(reply.texto.split("\n").map((l) => `  🤖 ${l}`).join("\n"));
+    return reply;
+  };
+
+  log("\n6) F2 — Agente conversacional de cobro y cobranza (voseo, sandbox):");
+  const cobro = await say("cobrale $75 a Juan por la factura A-124");
+  check(cobro.ordenNueva === true && !!cobro.linkPago, "cobro: orden creada + link + mensaje listo");
+  const repetido = await say("cobrale $75 a Juan por la factura A-124");
+  check(repetido.ordenNueva === false && repetido.linkPago === cobro.linkPago, "repetir el comando reusa la orden (no duplica)");
+  const ambiguo = await say("cobrale a María");
+  check(!ambiguo.linkPago && /más de una/.test(ambiguo.texto), "ambigüedad: lista opciones y NO crea orden");
+  const debe = await say("¿quién me debe?");
+  check(debe.tipo === "quien_debe" && /Te deben/.test(debe.texto), "resumen de pendientes");
+  const rec = await say("mandale un recordatorio a María por la A-125");
+  check(rec.tipo === "recordatorio" && !!rec.mensajeWhatsApp, "recordatorio educado con monto y link");
+  const pagada = await say("cobrale a Pedro");
+  check(!pagada.linkPago && /ya está pagada/.test(pagada.texto), "factura pagada: no se cobra");
+  const raro = await say("cobrale $1,5 a Juan");
+  check(raro.tipo === "no_entendido", "monto ambiguo: pide aclaración, no adivina");
 }
 
 main().catch((err) => {

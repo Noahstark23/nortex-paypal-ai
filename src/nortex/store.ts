@@ -44,6 +44,12 @@ export class InMemoryNortexStore implements NortexStore {
     this.state.sales.set(saleKey(sale.tenantId, sale.id), { ...sale });
   }
 
+  listSales(tenantId: string): Sale[] {
+    return [...this.state.sales.values()]
+      .filter((s) => s.tenantId === tenantId)
+      .map((s) => ({ ...s }));
+  }
+
   findPaymentByCaptureId(captureId: string): Payment | undefined {
     const payment = this.state.payments.get(captureId);
     return payment ? { ...payment } : undefined;

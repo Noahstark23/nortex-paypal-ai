@@ -36,3 +36,7 @@ export type {
   Sale,
 } from "./nortex/types.js";
 export { createApp } from "./server/app.js";
+
+// F2 — Agente conversacional de cobro y cobranza (núcleo local, sandbox).
+export { CobroAgent, parseIntent, parseAmount, formatUsd, mensajeLinkPago, mensajeRecordatorio } from "./agent/index.js";
+export type { AgentContext, AgentReply, Intent } from "./agent/index.js";
