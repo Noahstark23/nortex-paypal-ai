@@ -23,6 +23,11 @@ in Nicaragua sees the invoice marked paid and booked in Nortex automatically.
    double-entry ledger entries (collection, and the PayPal fee booked
    **separately as a cost**) + invoice marked paid, in **one transaction**.
    The FX rate used (USD→NIO) is recorded on the payment.
+4. **Collections in the merchant's own words** — a deterministic intent
+   parser (no LLM) also powers *"¿quién me debe?"* (pending-invoice summary)
+   and polite reminder drafts with the payment link included. Ambiguity —
+   two matching invoices, an unreadable amount — always stops and asks:
+   with money, the agent never guesses.
 
 ### Money rules (non-negotiable)
 
@@ -52,12 +57,17 @@ src/
   server/index.ts           Entrypoint (sandbox by default; demo mode without credentials)
   demo/run.ts               Scripted end-to-end diaspora demo (no credentials needed)
   demo/seed.ts              Synthetic demo data (no real customers)
+  agent/parser.ts           F2: deterministic intent parser (no LLM) for merchant Spanish
+  agent/agent.ts            F2: CobroAgent — tenant-scoped charge/collection executor
+  agent/messages.ts         F2: voseo replies + payment-link / reminder templates
   mcp/client.ts             Agent layer: consumes Nortex MCP tools over stdio (phase M2)
 test/
   decimal.test.ts           Exact money arithmetic
   paypal.client.test.ts     Client contract against a stubbed fetch (payloads, errors, signatures)
   reconciliation.test.ts    Idempotency, holds, multi-tenancy, fee separation, refunds
   demo.e2e.test.ts          Full diaspora flow over real HTTP + defenses
+  agent.parser.test.ts      F2: intent parsing, ambiguous amounts, name matching
+  agent.test.ts             F2: agent idempotency, ambiguity, already-paid, summaries
   mcp.client.test.ts        M2: agent consumes the real MCP server (mock data)
 ```
 
@@ -96,7 +106,7 @@ only via environment to the child process and is never logged.
 npm install
 cp .env.example .env   # fill PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET / PAYPAL_WEBHOOK_ID
 
-npm test               # full suite (Decimal, client contract, reconciliation, e2e, MCP)
+npm test               # full suite (Decimal, client contract, reconciliation, e2e, agent, MCP)
 npm run typecheck
 npm run demo           # end-to-end diaspora demo with the fake gateway — no credentials
 npm start              # real server against PayPal sandbox (PORT=8080)
@@ -109,7 +119,10 @@ The MCP tests additionally require the MCP server build:
 
 ## Demo script (for the <3 min video)
 
-The flow below is exactly what `npm run demo` executes and asserts.
+The flow below is the payment half of what `npm run demo` executes and
+asserts; the demo's step 6 then exercises the F2 agent (repeat-charge
+idempotency, ambiguous customer, debt summary, reminder draft, already-paid
+invoice, unreadable amount).
 
 **The story.** Doña Carmen runs *Pulpería La Bendición* in Estelí, Nicaragua,
 on Nortex. Her son lives in the US and covers the store's monthly invoice —
@@ -132,7 +145,11 @@ today that means screenshots, phone calls, and manual bookkeeping.
   (payment, separate fee entry, FX record, audit trail, refunds) with the
   scripted end-to-end demo above. Local repo only; pushing to the public
   `Noahstark23/nortex-paypal-ai` repo is the owner's call.
-- ⏳ **F2** — wire the conversational agent (WhatsApp) to the orders endpoint end-to-end.
+- ✅ **F2 (agent core)** — deterministic voseo intent parser (no LLM) +
+  tenant-scoped CobroAgent: charges, *"¿quién me debe?"* summaries and polite
+  reminders, idempotent per invoice, exercised end-to-end in demo step 6.
+  The WhatsApp Business API transport is **not** wired yet — the agent
+  produces ready-to-send message text.
 - ⏳ **F3** — hosted demo + <3 min video + Devpost submission.
 - 🔒 Going live (real money) requires the owner's explicit approval and a watched $1
   test — this repo never flips that switch by itself.
