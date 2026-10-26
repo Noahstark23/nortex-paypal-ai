@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nortex Pay AI — The Agent That Charges the Diaspora and Closes the Books</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:#0b1220;color:#e6edf3;line-height:1.55}
+  .wrap{max-width:880px;margin:0 auto;padding:32px 20px 64px}
+  h1{font-size:1.9rem;line-height:1.2;margin:.2em 0}
+  h2{margin-top:2em;font-size:1.25rem}
+  .sub{color:#9fb0c3;font-size:1.05rem}
+  .card{background:#111a2c;border:1px solid #22304d;border-radius:12px;padding:20px;margin:20px 0}
+  a{color:#4da3ff}
+  .btn{display:inline-block;background:#0070ba;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;margin-right:10px}
+  .btn.alt{background:#22304d;color:#e6edf3}
+  pre{background:#0d1526;border:1px solid #22304d;border-radius:10px;padding:16px;overflow-x:auto;font-size:.78rem;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+  iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:12px}
+  li{margin:.35em 0}
+  .note{color:#9fb0c3;font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="sub">PayPal AI Hackathon 2026 · Live demo page</p>
+  <h1>Nortex Pay AI — The Agent That Charges the Diaspora and Closes the Books</h1>
+  <p>Nortex Pay AI is a Spanish-speaking agent that lets small businesses in Nicaragua charge their customers and family in the United States through PayPal — and reconciles every payment into their books automatically.</p>
+  <p>A merchant asks in her own words — <em>«cobrale $50 a mi hijo por la factura A-000123»</em> — and the agent creates the PayPal order, sends the payment link, captures on approval, and posts a balanced double-entry reconciliation: the collection, the PayPal fee booked separately as a cost, and the exchange rate on the payment. Duplicate webhooks are ignored; forged ones are rejected (401). When an instruction is ambiguous, the agent stops and asks — with money, it never guesses.</p>
+  <p>
+    <a class="btn" href="https://github.com/Noahstark23/nortex-paypal-ai">View the code on GitHub</a>
+    <a class="btn alt" href="https://youtu.be/3O6wox1R6-E">Watch the demo video</a>
+  </p>
+
+  <h2>Demo video (2:57)</h2>
+  <iframe src="https://www.youtube.com/embed/3O6wox1R6-E" title="Nortex Pay AI demo" allowfullscreen></iframe>
+
+  <h2>How it works</h2>
+  <div class="card">
+    <ol>
+      <li><strong>Conversational checkout</strong> — the merchant speaks Nicaraguan Spanish; a PayPal order is created and the payment link goes to the buyer in the US.</li>
+      <li><strong>Capture + webhooks</strong> — on approval the order is captured; PayPal webhooks are signature-verified and reconciled.</li>
+      <li><strong>Automatic reconciliation</strong> — one payment row + double-entry ledger entries (collection, and the PayPal fee booked separately as a cost) + invoice marked paid, in one transaction. The FX rate used is recorded on the payment.</li>
+      <li><strong>Collections in the merchant's own words</strong> — "¿quién me debe?" summaries and polite reminder drafts with the payment link. Ambiguity always stops and asks.</li>
+    </ol>
+  </div>
+
+  <h2>Money rules (non-negotiable)</h2>
+  <div class="card">
+    <ul>
+      <li>Amounts travel as strings on the API and as exact Decimal (BigInt) inside Nortex. Never floats.</li>
+      <li>Idempotency keyed on PayPal's capture id: a duplicated webhook is a no-op — never a double charge or double entry.</li>
+      <li>Fail closed: an unverifiable webhook signature is logged and ignored; an amount mismatch is held for manual review.</li>
+      <li>Multi-tenant by construction: every payment only ever touches its own tenant's sale.</li>
+    </ul>
+  </div>
+
+  <h2>Recorded demo run</h2>
+  <p class="note">Actual output of <code>npm run demo</code> from the public repository — PayPal sandbox, synthetic data, no credentials needed:</p>
+  <pre>═══ NORTEX PAY AI — demo diáspora (sandbox, datos sintéticos) ═══
+
+1) Doña Carmen (Estelí) cobra desde Nortex: «cobrale $50 a mi hijo por la factura A-000123».
+  ✓ orden creada (FAKE-ORDER-1)
+   → link de pago para el familiar en EE. UU.: https://www.sandbox.paypal.com/checkoutnow?token=FAKE-ORDER-1
+  ✓ la venta sigue PENDIENTE tras crear la orden
+
+2) El hijo aprueba el pago en PayPal (USD) y Nortex captura:
+  ✓ captura FAKE-CAPTURE-1 COMPLETED
+   → bruto 50.00 USD, comisión PayPal 2.24 USD (costo aparte), neto 47.76 USD
+
+3) Conciliación automática en Nortex:
+  ✓ la factura quedó PAGADA
+  ✓ exactamente UNA fila de pago
+  ✓ dos asientos: cobro + comisión por separado
+  ✓ partida doble balanceada (débitos = créditos = C$1925.04)
+   → pago registrado con tasa FX 36.85 (C$1842.50 brutos)
+
+4) PayPal reenvía el MISMO webhook (pasa seguido): debe ser no-op.
+  ✓ duplicado ignorado
+  ✓ sigue habiendo UN solo pago (sin doble cobro)
+
+5) Webhook con firma inválida: fail closed, no se aplica nada.
+  ✓ rechazado con 401 y registrado en auditoría
+
+6) F2 — Agente conversacional de cobro y cobranza (voseo, sandbox):
+
+  🧑 Doña Carmen: cobrale $75 a Juan por la factura A-124
+  🤖 Listo, creé el link de pago de $75.00 para Juan Pérez (Miami) (factura A-000124). Copiá este mensaje y mandáselo:
+  🤖 
+  🤖 Hola Juan Pérez, ¿cómo estás? 👋
+  🤖 Te paso el link para pagar la factura A-000124 por $75.00 (USD):
+  🤖 https://www.sandbox.paypal.com/checkoutnow?token=FAKE-ORDER-1
+  🤖 Podés pagar con tu cuenta PayPal o con tarjeta, cuando te quede cómodo.
+  🤖 Cualquier duda, escribime. ¡Muchas gracias!
+  ✓ cobro: orden creada + link + mensaje listo
+
+  🧑 Doña Carmen: cobrale $75 a Juan por la factura A-124
+  🤖 Ya tenías el link de pago de $75.00 para Juan Pérez (Miami) (factura A-000124). Copiá este mensaje y mandáselo:
+  🤖 
+  🤖 Hola Juan Pérez, ¿cómo estás? 👋
+  🤖 Te paso el link para pagar la factura A-000124 por $75.00 (USD):
+  🤖 https://www.sandbox.paypal.com/checkoutnow?token=FAKE-ORDER-1
+  🤖 Podés pagar con tu cuenta PayPal o con tarjeta, cuando te quede cómodo.
+  🤖 Cualquier duda, escribime. ¡Muchas gracias!
+  ✓ repetir el comando reusa la orden (no duplica)
+
+  🧑 Doña Carmen: cobrale a María
+  🤖 Encontré más de una factura pendiente para María:
+  🤖 1. A-000125 — María López (Houston) — $1,200.50
+  🤖 2. A-000126 — María López (Houston) — $35.25
+  🤖 ¿Cuál querés cobrar? Decime el número de factura (ejemplo: «cobrale a María la factura A-000125»).
+  ✓ ambigüedad: lista opciones y NO crea orden
+
+  🧑 Doña Carmen: ¿quién me debe?
+  🤖 Te deben $1,360.75 en 4 facturas:
+  🤖 • Familia Pineda (EE. UU.) — factura A-000123 — $50.00
+  🤖 • Juan Pérez (Miami) — factura A-000124 — $75.00
+  🤖 • María López (Houston) — factura A-000125 — $1,200.50
+  🤖 • María López (Houston) — factura A-000126 — $35.25
+  ✓ resumen de pendientes
+
+  🧑 Doña Carmen: mandale un recordatorio a María por la A-125
+  🤖 Acá tenés el recordatorio para María López (Houston) (factura A-000125, $1,200.50):
+  🤖 
+  🤖 Hola María López, ¿cómo estás? 👋
+  🤖 Te escribo para recordarte, con mucho cariño, que la factura A-000125 por $1,200.50 (USD) sigue pendiente.
+  🤖 Si te queda cómodo, la podés pagar acá:
+  🤖 https://www.sandbox.paypal.com/checkoutnow?token=FAKE-ORDER-2
+  🤖 Si ya la pagaste, ignorá este mensaje y disculpá la molestia.
+  🤖 Cualquier cosa, avisame. ¡Gracias por tu apoyo!
+  ✓ recordatorio educado con monto y link
+
+  🧑 Doña Carmen: cobrale a Pedro
+  🤖 No hay nada por cobrarle a Pedro: esa factura ya está pagada. 🎉
+  ✓ factura pagada: no se cobra
+
+  🧑 Doña Carmen: cobrale $1,5 a Juan
+  🤖 No te entendí bien y con plata prefiero no adivinar. ¿Me lo decís de nuevo? Por ejemplo: «cobrale $50 a Juan por la factura A-123», «recordale a María su factura» o «¿quién me debe?».
+  ✓ monto ambiguo: pide aclaración, no adivina
+
+═══ DEMO OK: flujo completo conciliado ═══</pre>
+
+  <h2>Honest scope</h2>
+  <p class="note">PayPal does not operate inside Nicaragua, so the buyer is in the US on the rail they already have. This demo runs entirely on the PayPal sandbox with synthetic data; no real money moves. The agent today produces ready-to-send messages — the WhatsApp Business API transport is the next step.</p>
+  <p class="note">Built with: TypeScript, PayPal Orders v2 + Webhooks (sandbox), Model Context Protocol, Zod, Vitest — 65 automated tests. Built for the PayPal AI Hackathon 2026.</p>
+</div>
+</body>
+</html>
